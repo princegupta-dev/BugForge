@@ -1,20 +1,9 @@
-import express from "express";
-import healthRouter from "./routes/health.routes.js";
-import { getRuntimeMetrics } from "./services/metrics.service.js";
-
-const app = express();
+import type { AddressInfo } from "node:net";
+import app from "./app.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
 
-app.use(express.json());
-app.use("/health", healthRouter);
-
-app.get("/metrics", (_req, res) => {
-  res.json(getRuntimeMetrics());
-});
-
-export default app;
-
-app.listen(PORT, () => {
-  console.log(`Runtime Doctor running at http://localhost:${PORT}`);
+const server = app.listen(PORT, () => {
+  const { port } = server.address() as AddressInfo;
+  console.log(`Runtime Doctor running at http://localhost:${port}`);
 });

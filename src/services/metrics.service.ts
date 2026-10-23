@@ -1,12 +1,14 @@
 import { monitorEventLoopDelay, performance } from "node:perf_hooks";
 
 const histogram = monitorEventLoopDelay({
-  resolution: 20,
+  resolution: 10,
 });
 
 histogram.enable();
 
 let previousElu = performance.eventLoopUtilization();
+
+const nsToMs = (ns: number) => Number((ns / 1e6).toFixed(2));
 
 export function getRuntimeMetrics() {
   const elu = performance.eventLoopUtilization(previousElu);
@@ -15,8 +17,10 @@ export function getRuntimeMetrics() {
   return {
     eventLoop: {
       utilization: Number(elu.utilization.toFixed(4)),
-      meanDelayMs: Number((histogram.mean / 1e6).toFixed(2)),
-      maxDelayMs: Number((histogram.max / 1e6).toFixed(2)),
+      meanDelayMs: nsToMs(histogram.mean),
+      p50DelayMs: nsToMs(histogram.percentile(50)),
+      p99DelayMs: nsToMs(histogram.percentile(99)),
+      maxDelayMs: nsToMs(histogram.max),
     },
     process: {
       cpuUsage: process.cpuUsage(),
@@ -24,4 +28,9 @@ export function getRuntimeMetrics() {
       uptimeSeconds: process.uptime(),
     },
   };
+}
+
+export function resetRuntimeMetrics() {
+  histogram.reset();
+  previousElu = performance.eventLoopUtilization();
 }
