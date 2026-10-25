@@ -32,3 +32,14 @@ pauses happen on the main thread too, so a memory-hungry request adds
 event-loop delay beyond its own compute time. The outlier export that took
 1.3 s instead of ~0.5 s is consistent with this, but experiment 01 did not
 isolate GC. That is a question for a later experiment (e.g. `--trace-gc`).
+
+## RSS is sticky (learned in experiment 02)
+
+When V8 frees memory, the process often keeps those pages for a while
+instead of handing them back to the OS. So RSS can stay high long after the
+big objects are gone. That makes "RSS now minus RSS before" a misleading
+metric: whatever ran earlier (like a warmup export) inflates the "before".
+Compare peaks under the same conditions instead, or look at `heapUsed`.
+
+Streaming the export (experiment 02) dropped peak RSS from 390–514 MB to
+135–181 MB with two concurrent exports.

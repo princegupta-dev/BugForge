@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.check.json",
     "test": "node --import tsx --test test/*.test.ts",
-    "bench:01": "node --import tsx bench/01-csv-export.ts"
+    "bench:01": "node --import tsx bench/01-csv-export.ts",
+    "bench:02": "node --import tsx bench/02-stream-vs-naive.ts"
   },
   "keywords": [],
   "author": "",

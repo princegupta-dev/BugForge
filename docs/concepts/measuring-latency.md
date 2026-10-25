@@ -34,3 +34,16 @@ taken late. The benchmark spawns the server as a child process.
   contended vs baseline, and worst health latency vs measured export work.
   That keeps it valid on a fast laptop and a slow CI runner, and it never
   bakes in an expected latency.
+
+## Measure the measurer
+
+If the load generator stalls (GC, spawning `ps`, reading big responses),
+requests leave late and that lateness looks like server latency. Since
+experiment 02, the benchmark also records the load generator's own
+event-loop delay. If that number is large, distrust the run.
+
+## Repeat before you conclude
+
+In experiment 02, one run said streaming barely helped p99 (999 ms). Four
+other runs said 34–148 ms. A single run is an anecdote. Run at least 3 times
+and report the spread, not just the best or the worst.

@@ -89,7 +89,8 @@ Per export (contended phase, 18 and 17 exports completed):
 
 ## Not yet done (on purpose)
 
-No fix. Candidate directions to compare in later experiments: streaming
+No fix on this branch. The first fix is measured in
+[experiment 02](02-stream-csv.md). Candidate directions to compare in later experiments: streaming
 with backpressure, yielding between chunks, a worker thread, and pagination
 at the data source. When a fix lands, the reproduction test should start
 failing. Invert it into a regression test then.

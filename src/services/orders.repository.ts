@@ -1,6 +1,6 @@
-// EXPERIMENT 01: a fixed, deterministic dataset standing in for an "orders"
-// table. Every call materialises the full result set as an array of objects,
-// the way an ORM `findAll()` with no pagination would.
+// A fixed, deterministic dataset standing in for an "orders" table.
+// EXPERIMENT 01: `findAllOrders` materialises the full result set as an array
+// of objects, the way an ORM `findAll()` with no pagination would.
 
 export const ORDER_ROW_COUNT = 300_000;
 const SEED = 0x5eed_0001;
@@ -45,14 +45,14 @@ function createRandom(seed: number) {
   };
 }
 
-export function findAllOrders(count = ORDER_ROW_COUNT): Order[] {
+// One seeded sequence shared by both readers, so they return identical data.
+function* generateOrders(count: number): Generator<Order> {
   const random = createRandom(SEED);
   const pick = <T>(items: T[]) => items[Math.floor(random() * items.length)]!;
-  const orders: Order[] = [];
 
   for (let id = 1; id <= count; id++) {
     const customerId = 1 + Math.floor(random() * 50_000);
-    orders.push({
+    yield {
       id,
       customerId,
       email: `customer${customerId}@example.com`,
@@ -64,8 +64,27 @@ export function findAllOrders(count = ORDER_ROW_COUNT): Order[] {
       createdAt: new Date(BASE_TIME + Math.floor(random() * 365 * 86_400_000)),
       country: pick(COUNTRIES),
       note: pick(NOTES),
-    });
+    };
   }
+}
 
-  return orders;
+export function findAllOrders(count = ORDER_ROW_COUNT): Order[] {
+  return Array.from(generateOrders(count));
+}
+
+// EXPERIMENT 02: page through the same data, like a database cursor. Only one
+// batch of row objects exists at a time.
+export function* findOrdersInBatches(
+  batchSize: number,
+  count = ORDER_ROW_COUNT,
+): Generator<Order[]> {
+  let batch: Order[] = [];
+  for (const order of generateOrders(count)) {
+    batch.push(order);
+    if (batch.length === batchSize) {
+      yield batch;
+      batch = [];
+    }
+  }
+  if (batch.length > 0) yield batch;
 }
