@@ -50,5 +50,7 @@ samples CPU and RSS from a separate process.
 - How much of the stall happens after the CSV is built (`res.send` converting
   the string to a Buffer, Express computing an ETag over the body)? Loop
   delay max (~605 ms) was slightly above measured compute (~573 ms).
-- Which fix helps which signal? Chunking or streaming on the main thread, or
-  moving encoding to a worker thread.
+- ~~Which fix helps which signal?~~ Partly answered by
+  [experiment 02](../experiments/02-stream-csv.md). Streaming with a real
+  yield fixed typical latency and memory, but ELU stayed ~0.99: the thread is
+  shared more fairly, not freed. A worker thread is the next thing to measure.
