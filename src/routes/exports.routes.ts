@@ -1,7 +1,13 @@
 import { performance } from "node:perf_hooks";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { Router } from "express";
-import { toCsv } from "../services/csv.service.js";
-import { findAllOrders, type Order } from "../services/orders.repository.js";
+import { toCsv, toCsvChunks } from "../services/csv.service.js";
+import {
+  findAllOrders,
+  findOrdersInBatches,
+  type Order,
+} from "../services/orders.repository.js";
 
 const router = Router();
 
@@ -41,6 +47,42 @@ router.get("/orders.csv", (_req, res) => {
     `rows=${heapWithRows - heapBefore}, csv=${heapWithCsv - heapWithRows}`,
   );
   res.type("text/csv").send(csv);
+});
+
+// ~5k rows is a few milliseconds of encoding: small enough that /health never
+// waits long, large enough that per-batch overhead stays negligible.
+const EXPORT_BATCH_SIZE = 5_000;
+
+// EXPERIMENT 02: same CSV, streamed. Rows are read in batches, each batch is
+// encoded and written, and the event loop gets a turn between batches.
+// `pipeline` pauses the generator whenever the socket's buffer is full
+// (backpressure), so a slow client cannot make us buffer the whole file.
+router.get("/orders-stream.csv", async (req, res) => {
+  const slices: number[] = [];
+  const chunks = toCsvChunks(
+    findOrdersInBatches(EXPORT_BATCH_SIZE),
+    ORDER_COLUMNS,
+    (durationMs) => slices.push(durationMs),
+  );
+
+  // The body is still being produced when headers go out, so timing is sent
+  // as a trailer (a header after the body; needs chunked encoding).
+  async function* withTimingTrailer() {
+    yield* chunks;
+    const total = slices.reduce((sum, ms) => sum + ms, 0);
+    res.addTrailers({
+      "Server-Timing": `work;dur=${total.toFixed(1)}, maxSlice;dur=${Math.max(...slices).toFixed(1)}`,
+    });
+  }
+
+  res.type("text/csv");
+  res.setHeader("Trailer", "Server-Timing");
+  try {
+    await pipeline(Readable.from(withTimingTrailer()), res);
+  } catch (error) {
+    // A client that disconnects mid-download is normal, not a server error.
+    if (!req.destroyed) throw error;
+  }
 });
 
 export default router;
