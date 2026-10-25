@@ -1,9 +1,14 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { runExperiment01, DEFAULT_OPTIONS } from "./lib/experiment-01.js";
+import {
+  runCsvExportExperiment,
+  DEFAULT_OPTIONS,
+  type ExportVariant,
+} from "./lib/csv-export-experiment.js";
 
 const env = (name: string, fallback: number) => Number(process.env[name] ?? fallback);
 
-const result = await runExperiment01({
+const result = await runCsvExportExperiment({
+  exportVariant: (process.env.EXPORT_VARIANT ?? DEFAULT_OPTIONS.exportVariant) as ExportVariant,
   healthRatePerSecond: env("HEALTH_RPS", DEFAULT_OPTIONS.healthRatePerSecond),
   phaseSeconds: env("PHASE_SECONDS", DEFAULT_OPTIONS.phaseSeconds),
   exportConcurrency: env("EXPORT_CONCURRENCY", DEFAULT_OPTIONS.exportConcurrency),
@@ -24,10 +29,11 @@ console.table({
   "CPU max cores (sampled)": row(baseline.process.maxCores, contended.process.maxCores),
   "intervals >= 90% of a core": row(baseline.process.intervalsAbove90PctOfCore, contended.process.intervalsAbove90PctOfCore),
   "RSS peak MB": row(baseline.process.rssPeakMb, contended.process.rssPeakMb),
+  "load generator delay max ms": row(baseline.loadGeneratorDelayMs.max, contended.loadGeneratorDelayMs.max),
 });
 console.log("exports during contended phase:", JSON.stringify(contended.exports, null, 2));
 
 await mkdir("bench-results", { recursive: true });
-const file = `bench-results/01-csv-export-${result.recordedAt.replaceAll(":", "-")}.json`;
+const file = `bench-results/01-csv-export-${result.options.exportVariant}-${result.recordedAt.replaceAll(":", "-")}.json`;
 await writeFile(file, JSON.stringify(result, null, 2));
 console.log(`full result written to ${file}`);

@@ -6,6 +6,7 @@ export interface Response {
   status: number;
   bytes: number;
   headers: http.IncomingHttpHeaders;
+  trailers: NodeJS.Dict<string>;
 }
 
 export function request(url: string, method = "GET"): Promise<Response> {
@@ -14,7 +15,12 @@ export function request(url: string, method = "GET"): Promise<Response> {
       let bytes = 0;
       res.on("data", (chunk: Buffer) => (bytes += chunk.length));
       res.on("end", () =>
-        resolve({ status: res.statusCode ?? 0, bytes, headers: res.headers }),
+        resolve({
+          status: res.statusCode ?? 0,
+          bytes,
+          headers: res.headers,
+          trailers: res.trailers,
+        }),
       );
       res.on("error", reject);
     });

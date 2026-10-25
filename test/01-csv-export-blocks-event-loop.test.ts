@@ -5,7 +5,7 @@
 // machines alike.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { runExperiment01 } from "../bench/lib/experiment-01.js";
+import { runCsvExportExperiment } from "../bench/lib/csv-export-experiment.js";
 import { findAllOrders, ORDER_ROW_COUNT } from "../src/services/orders.repository.js";
 
 test("dataset is fixed: 300k rows, identical on every call", () => {
@@ -17,7 +17,7 @@ test("dataset is fixed: 300k rows, identical on every call", () => {
 });
 
 test("CSV export degrades an unrelated /health endpoint", { timeout: 120_000 }, async (t) => {
-  const result = await runExperiment01({
+  const result = await runCsvExportExperiment({
     healthRatePerSecond: 50,
     phaseSeconds: 4,
     exportConcurrency: 1,
